@@ -9,6 +9,6 @@
   * Notionのintegrationを作成した際に取得できるToken
 * NOTION_DB_ID
   * 情報を取得したいNotionDBの ID
-  * DBをページとして表示した際のURLがhttps://www.notion.so/XXXX/YYYY?v=ZZZのような形になっていると思うのですが、YYYYの部分が IDです。
+  * DBをページとして表示した際のURLがhttps://www.notion.so/XXXX/YYYY?v=ZZZ のような形になっていると思うのですが、YYYYの部分が IDです。
 * OPENAI_KEY
   * Open AIのAPIキー  
