@@ -1,39 +1,40 @@
 function main() {
-  today=new Date()
+  const today=new Date()
 
   if(is_buisinessday(today)){
-    var calender_info=get_calender_info()
+    const calender_info=get_calender_info()
 
     //3,5,7営業日前の人にリマインダーを送る
     remind(calender_info)
   }
 }
 function remind(calender_info){
-  var days_remaining_list=[3,5,7]
+  const days_remaining_list=[3,5,7]
 
   for(i=0;calender_info.length>i;i++){
-    post_date=calender_info[i]['date']
-    var today = new Date();
+    const post_date=calender_info[i]['date']
+    const today = new Date();
 
     for(j=0;days_remaining_list.length>j;j++){
-      reminder_date=calculate_business_days_before(post_date,days_remaining_list[j])
+      const reminder_date=calculate_business_days_before(post_date,days_remaining_list[j])
 
       if (today.getDate() === reminder_date.getDate()) { // 今日がリマインダーを送るべき日なら
-        user_id=get_userid_from_email(calender_info[i]['email'][0])
-        var message = generate_encouragement_message(calender_info[i]['title'],days_remaining_list[j])
+        const user_id=get_userid_from_email(calender_info[i]['email'][0])
+        let message = generate_encouragement_message(calender_info[i]['title'],days_remaining_list[j])
         message='<@'+user_id+'>'+message
-        sendToSlack(message)
+        //send_to_slack(message)
+        console.log(message)
       }
     }
   }
 }
 function generate_encouragement_message(title,days_remaining) {
   const api_key = PropertiesService.getScriptProperties().getProperty("OPENAI_KEY");
-  var model='gpt-4-1106-preview'
-  var endpoint = 'https://api.openai.com/v1/chat/completions'; // GPT-4のエンドポイント
+  const model='gpt-4-1106-preview'
+  const endpoint = 'https://api.openai.com/v1/chat/completions'; // GPT-4のエンドポイント
 
-  var system_prompt='あなたは記事執筆を応援するモチベーターAIです。記事が書きたくなるように記事のタイトルを考慮して執筆者のモチベーションを向上させてください'
-  var prompt = `「記事執筆応援メッセージを一文で出力してください。
+  const system_prompt='あなたは記事執筆を応援するモチベーターAIです。記事が書きたくなるように記事のタイトルを考慮して執筆者のモチベーションを向上させてください'
+  const prompt = `「記事執筆応援メッセージを一文で出力してください。
   ただし以下のルールに従ってください。
   ・文中に記事タイトルと投稿予定日までの営業日数を必ず含めてください。
   ・タイトルが「未定」「なんか書く」などの際は、タイトルを決めるように催促してください。
@@ -42,7 +43,7 @@ function generate_encouragement_message(title,days_remaining) {
   記事タイトル：${title}
   投稿予定日までの営業日数：${days_remaining}日`;
 
-  content=[
+  const content=[
     {
       'role':'system',
       'content':system_prompt
@@ -52,14 +53,14 @@ function generate_encouragement_message(title,days_remaining) {
       'content':prompt
     }
   ]
-  var payload = {
+  const payload = {
     "model":model,
     "messages": content,
     "max_tokens": 1000,
     "temperature":0.8
   };
 
-  var options = {
+  const options = {
 
     'method' : 'post',
     'contentType': 'application/json',
@@ -69,11 +70,11 @@ function generate_encouragement_message(title,days_remaining) {
     'payload': JSON.stringify(payload)
   };
 
-  for (var attempts = 0; attempts < 5; attempts++) {
+  for (const attempts = 0; attempts < 5; attempts++) {
     try {
-      var response = UrlFetchApp.fetch(endpoint, options);
-      var json = response.getContentText();
-      var data = JSON.parse(json);
+      const response = UrlFetchApp.fetch(endpoint, options);
+      const json = response.getContentText();
+      const data = JSON.parse(json);
       return data.choices[0]['message']['content'];
     } catch (e) {
       console.log('retry message generation ' + e);
@@ -84,7 +85,7 @@ function generate_encouragement_message(title,days_remaining) {
 }
 
 function log_encouragement_message() {
-  var message = generate_encouragement_message();
+  const message = generate_encouragement_message();
   Logger.log(message);
 }
 
@@ -94,7 +95,7 @@ function get_message(){
 }
 
 function calculate_business_days_before(date, days_before) {
-  var result_date = new Date(date)
+  const result_date = new Date(date)
 
   while (days_before > 0) {
 
@@ -116,9 +117,9 @@ function is_buisinessday(_date){
   //日本の祝日だけが入ったカレンダー
   const japanese_holiday_callender_id='ja.japanese#holiday@group.v.calendar.google.com'
   const calendar = CalendarApp.getCalendarById(japanese_holiday_callender_id);
-  const holidayEvents = calendar.getEventsForDay(_date);
+  const holiday_events = calendar.getEventsForDay(_date);
   //予定が入っている日は祝日
-  if (holidayEvents.length > 0) {
+  if (holiday_events.length > 0) {
     return false;
   }
   return true;
@@ -141,49 +142,48 @@ function call_slack_api(token, api_method, payload) {
       payload: params,
     }
   );
-  console.log(`Web API (${api_method}) response: ${response}`)
   return response;
 }
 function get_userid_from_email(email){
   const token=PropertiesService.getScriptProperties().getProperty("SLACK_OAUTH_TOKEN");
-  payload={
+  const payload={
     'email':email
   }
-  var response=call_slack_api(token,'users.lookupByEmail',payload)
-  response_json = JSON.parse(response.getContentText());
+  const response=call_slack_api(token,'users.lookupByEmail',payload)
+  const response_json = JSON.parse(response.getContentText());
   const user_id=response_json['user']['id']
   return user_id
 }
 
-function sendToSlack(message){
+function send_to_slack(message){
   const token=PropertiesService.getScriptProperties().getProperty("SLACK_OAUTH_TOKEN");
   const channel_id=PropertiesService.getScriptProperties().getProperty("CHANNEL_ID");
-  const apiResponse = call_slack_api(token, "chat.postMessage", {
+  const api_response = call_slack_api(token, "chat.postMessage", {
     channel: channel_id,
     text: message
   });
-  return apiResponse
+  return api_response
 }
 
 function call_notion_api(url, token, method, payload=null) {
-  counter=0
+  const counter=0
   while (true){
     try{
-      var headers = {
+      const headers = {
         'content-type' : 'application/json; charset=UTF-8',
         'Authorization': 'Bearer ' + token,
         'Notion-Version': '2022-06-28',
       };
-      var _payload = payload==null ? null : JSON.stringify(payload);
-      var options ={
+      const _payload = payload==null ? null : JSON.stringify(payload);
+      const options ={
         "method": method,
         "headers": headers,
         "payload": _payload
       }
 
-      var notion_data = UrlFetchApp.fetch(url, options);
-      notion_data = JSON.parse(notion_data);
-      return notion_data;
+      const notion_data = UrlFetchApp.fetch(url, options);
+      const notion_data_json = JSON.parse(notion_data);
+      return notion_data_json;
     }catch(e){
       if(counter>5){
         console.log('5 times failed calling notion api');
@@ -205,11 +205,11 @@ function get_notion_db(){
   const db_id = PropertiesService.getScriptProperties().getProperty("NOTION_DB_ID");
   const url = "https://api.notion.com/v1/databases/" + db_id + "/query";
 
-  var has_more = true;
-  var start_cursor = null;
-  var loop_cnt = 0
-  var payload = {}
-  var results_db = [];
+  let has_more = true;
+  let start_cursor = null;
+  let loop_cnt = 0
+  let payload = {}
+  let results_db = [];
 
   // retrieve pagenated notion db
   while (has_more){
@@ -220,7 +220,7 @@ function get_notion_db(){
       payload = {"page_size":100, "start_cursor":start_cursor}
     }
 
-    var res = call_notion_api(url, token, "post", payload)
+    const res = call_notion_api(url, token, "post", payload)
     has_more = res["has_more"];
     start_cursor = res["next_cursor"];
     results_db = results_db.concat(res["results"]);
@@ -230,17 +230,17 @@ function get_notion_db(){
 }
 
 function get_calender_info(){
-  notionDB = get_notion_db();
+  const notionDB = get_notion_db();
 
-  info_list=[]
+  const info_list=[]
 
   for(i=0;notionDB.length>i;i++){
 
-    date=new Date(notionDB[i]['properties']['Date']['date']['start'])
+    const date=new Date(notionDB[i]['properties']['Date']['date']['start'])
 
-    email_list=[]
+    const email_list=[]
 
-    persons=notionDB[i]['properties']['Person']['people']
+    const persons=notionDB[i]['properties']['Person']['people']
 
     for(j=0;persons.length>j;j++){
       email_list.push(persons[j]['person']['email'])
@@ -268,22 +268,22 @@ function test_notion_api(){
 }
 
 function test_user_id(){
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1"); // 適切なシート名に置き換えてください
-  var data = sheet.getDataRange().getValues();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1"); // 適切なシート名に置き換えてください
+  const data = sheet.getDataRange().getValues();
 
-  var email = data[1][2];
+  const email = data[1][2];
   console.log(email)
-  user_id=get_userid_from_email(email)
+  const user_id=get_userid_from_email(email)
   console.log(user_id )
 }
 
 function test_send_slack(){
-  user_id=get_userid_from_email('yudai.kato@abejainc.com')
-  message='<@'+user_id+'>'
+  const user_id=get_userid_from_email('yudai.kato@abejainc.com')
+  const message='<@'+user_id+'>'
   console.log(message)
-  sendToSlack(message)
+  send_to_slack(message)
 }
 function test_generation(){
-  message=generate_encouragement_message('モチベータボット作ってみた',7);
+  const message=generate_encouragement_message('モチベータボット作ってみた',7);
   console.log(message)
 }
